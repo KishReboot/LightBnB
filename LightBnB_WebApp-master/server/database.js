@@ -19,8 +19,12 @@ const pool = new Pool({
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithEmail = function(email) {
+  
+  let queryString = `SELECT * FROM users WHERE email = $1;`;
+  let queryParams = [email];
+
   return pool
-  .query(`SELECT * FROM users WHERE email = $1;`, [email])
+  .query(queryString, queryParams)
   .then((result) => {
     if(result.rows) {
       return result.rows[0];
@@ -40,8 +44,12 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function(id) {
+  
+  let queryString = `Select * FROM users WHERE id = $1;`;
+  let queryParams = [id];
+  
   return pool
-  .query(`Select * FROM users WHERE id = $1;`, [id])
+  .query(queryString, queryParams)
   .then((result) => {
     if (result.rows[0]) {
       return result.rows[0]
@@ -62,10 +70,14 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser =  function(user) {
-  return pool
-  .query(`INSERT INTO users(name, email, password) 
+  
+  let queryString = `INSERT INTO users(name, email, password) 
   VALUES ($1, $2, $3) 
-  RETURNING *;`, [user.name, user.password, user.email])
+  RETURNING *;`;
+  let queryParams = [user.name, user.password, user.email];
+  
+  return pool
+  .query(queryString, queryParams)
   .then ((result) => {
     return result.rows[0];
   })
@@ -83,9 +95,8 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return pool
-  .query(`
-  SELECT reservations.*, properties.*, AVG(property_reviews.rating) as average_rating
+  
+  let queryString = `SELECT reservations.*, properties.*, AVG(property_reviews.rating) as average_rating
   FROM properties
   JOIN reservations ON properties.id = reservations.property_id
   JOIN property_reviews ON properties.id = property_reviews.property_id
@@ -94,10 +105,10 @@ const getAllReservations = function(guest_id, limit = 10) {
   GROUP BY properties.id, reservations.id
   ORDER BY start_date
   LIMIT $2;
-  `, [guest_id, limit])
-  .then((result) => {
-    return result.rows
-  });
+  `
+  let queryParams = [guest_id, limit];
+
+  return pool.query(queryString, queryParams).then((res) => res.rows);
 };
 exports.getAllReservations = getAllReservations;
 
@@ -111,13 +122,14 @@ exports.getAllReservations = getAllReservations;
  */
 const getAllProperties = function (options, limit = 10) {
   
-  const queryParams = [];
-  
   let queryString = `
   SELECT properties.*, avg(property_reviews.rating) as average_rating
   FROM properties
   JOIN property_reviews ON properties.id = property_id
   `;
+  
+  let queryParams = [];
+  
 
   if (options.city) {
     queryParams.push(`%${options.city}%`);
@@ -158,7 +170,10 @@ const getAllProperties = function (options, limit = 10) {
 
   console.log(queryString, queryParams);
 
-  return pool.query(queryString, queryParams).then((res) => res.rows);
+  return pool
+  .query(queryString, queryParams)
+  .then((res) => res.rows);
+  
 };
 exports.getAllProperties = getAllProperties;
 
@@ -169,9 +184,15 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+  
+  let queryString = `INSERT INTO properties (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, street, city, province, post_code, country, parking_spaces, number_of_bathrooms, number_of_bedrooms)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+  RETURNING *;`;
+
+  let queryParams = [property.ownder_id, property.title, property.description, property.thumbnail_photo_url, property.cover_photo_url, property.cost_per_night, property.street, property.city, property.province, property.post_code, property.country, property.parking_spaces, property.number_of_bathrooms, property.number_of_bedrooms];
+
+  return pool
+  .query(queryString, queryParams)
+  .then((res) => res.rows);
 }
 exports.addProperty = addProperty;
