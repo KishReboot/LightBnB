@@ -62,11 +62,17 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser =  function(user) {
-  const userId = Object.keys(users).length + 1;
-  user.id = userId;
-  users[userId] = user;
-  return Promise.resolve(user);
-}
+  return pool
+  .query(`INSERT INTO users(name, email, password) 
+  VALUES ($1, $2, $3) 
+  RETURNING *;`, [user.name, user.password, user.email])
+  .then ((result) => {
+    return result.rows[0];
+  })
+  .catch((err) => {
+    console.log(err.message);
+  });
+};
 exports.addUser = addUser;
 
 /// Reservations
